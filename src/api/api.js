@@ -8,14 +8,9 @@ class Workbook {
      */
     _activeSheetIndex;
     _options;
-    /**
-     * @type {SharedModel}
-     */
-    _sharedModel;
-    /**
-     * @type {Manager}
-     */
-    _manager;
+    _modelManager;
+    _commandManager;
+    _userManager;
 
     constructor(options, ...args) {
         this._options = { ...options, ...DEFAULT_WORKBOOK_OPTIONS };
@@ -24,20 +19,37 @@ class Workbook {
 
     init(args) {
         let self = this;
-        self.beforeInit(...args);
-        this._sheets = [];
-        this._activeSheetIndex = 0;
+        self.beforeInit?.(...args);
+        self._sheets = [];
+        self._activeSheetIndex = 0;
+        self._commandManager = new CommandManager(self);
+        self._modelManager = new ModelManager(self);
         let options = self._options;
         for (let i = 0; i < options.sheetCount; i++) {
             self.addSheet();
         }
-        this._sharedModel = new SharedModel();
-        this._manager = new Manager(this);
-        self.afterInit(...args);
+        initCommands(self._commandManager);
+        self.afterInit?.(...args);
     }
 
     getSharedModel() {
-        return this._sharedModel;
+        return this.modelManager().getSharedModel();;
+    }
+
+    /**
+     * 
+     * @returns {CommandManager}
+     */
+    commandManager () {
+        return this._commandManager;
+    }
+
+    /**
+     * 
+     * @returns {ModelManager}
+     */
+    modelManager () {
+        return this._modelManager;
     }
 
     /**
@@ -54,31 +66,36 @@ class Workbook {
         }
         let sheet = this.getNewWorksheet(name);
         self._sheets.push(sheet);
-        self.refresh();
+        self.refresh?.();
         return true;
     }
 
     getNewWorksheet(name) {
-        return new Worksheet(self, name);
+        let self = this;
+        let modelManager = self.modelManager();
+        modelManager.do("addSheet", name);
+        let dataModel = modelManager.getSheetModel(name);
+        return new Worksheet(self, name, dataModel);
     }
 
-    deleteSheet(name) {
+    removeSheet(name) {
         let self = this;
-        let index = self._sheets.findIndex(sheet => sheet.name === name);
+        let index = self._sheets.findIndex(sheet => sheet.name() === name);
         if (index !== -1) {
             let sheet = self._sheets[index];
             sheet.dispose();
             self._sheets.splice(index, 1);
+            self._modelManager.do("removeSheet", name);
         }
-        self.refresh();
+        self.refresh?.();
     }
 
     getSheetByName(name) {
-        return this._sheets.find(sheet => sheet.name === name);
+        return this._sheets.find(sheet => sheet.name() === name);
     }
 
     getSheetIndexByName(name) {
-        return this._sheets.findIndex(sheet => sheet.name === name);
+        return this._sheets.findIndex(sheet => sheet.name() === name);
     }
 
     getSheet(index) {
@@ -110,6 +127,9 @@ class Workbook {
         this._sheets.forEach(sheet => sheet.dispose());
         this._sheets = null;
         this._options = null;
+        this._modelManager = null;
+        this._commandManager = null;
+        this._userManager = null;
     }
 
     // //#region hooks
@@ -121,24 +141,35 @@ class Workbook {
 
 class Worksheet {
 
+    /**
+     * @type {string}
+     */
     _name
+    /**
+     * @type {Workbook}
+     */
     _parent;
+    /**
+     * @type {DataModel}
+     */
     _model;
-    _sharedModel;
 
     /**
      * @param {Workbook} parent 
      * @param {string} name
      */
-    constructor(parent, name) {
+    constructor(parent, name, dataModel) {
         this._name = name;
         this._parent = parent;
-        this._model = new DataModel();
-        this._sharedModel = parent.getSharedModel();
+        this._model = dataModel || new DataModel();
     }
 
     getParent() {
         return this._parent;
+    }
+
+    name () {
+        return this._name;
     }
 
     /**
@@ -179,6 +210,20 @@ class Worksheet {
         }
         return null;
     }
+
+    _initViewModel() {
+        let self = this;
+        let model = JSON.parse(self._model.toJSON());
+        let sharedModel = self.getParent().getSharedModel();
+        for (const rowIndex in model) {
+            const row = model[rowIndex];
+            for (const colIndex in row) {
+                const sharedValuesIndex = row[colIndex];
+                row[colIndex] = sharedModel.getValue(sharedValuesIndex);
+            }
+        }
+        return model;
+    }
 }
 
 /**
@@ -197,24 +242,37 @@ function getWorksheet(context, options) {
     return context;
 }
 
-const SET_VALUE_COMMAND = {
+
+const Command_DEF_Edit_Cell = {
     /**
-    * 
-    * @param {Workbook} context 
-    * @param {*} options 
-    * @returns {boolean}
-    */
-    execute: (context, options) => {
-        let sheet = getWorksheet(context, options);
-        context._manager.
-         sheet.setValue(options.row, options.col, options.value);
-        return true;
+     * 
+     * @param {WorkbookRender} context 
+     * @param {*} commandOptions 
+     * @param {boolean} isUndo 
+     */
+    execute: function(context, commandOptions, isUndo) {
+        let {row, col, newValue, sheetName} = commandOptions;
+        let sheet = context.getSheetByName(sheetName);
+        if (sheet) {
+            if (isNullOrUndefined(newValue)) {
+                newValue = null;
+            }
+            if (!(isNaN(parseFloat(newValue, 10)))) {
+                newValue = parseFloat(newValue, 10);
+            }
+            if (sheet.getValue(row, col) !== newValue) {
+                let modelManager = context.modelManager();
+                modelManager.do('setValue', sheetName, row, col, newValue);
+                sheet.repaint?.();
+            }
+        }
     }
 }
 
 /**
+ * 
  * @param {CommandManager} commandManager 
  */
 function initCommands(commandManager) {
-    commandManager.register("setValue",)
-}
+    commandManager.register('editCell', Command_DEF_Edit_Cell);
+};

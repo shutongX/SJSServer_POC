@@ -33,8 +33,8 @@ class DataModel {
 
     constructor(rowCount, colCount) {
         this._valueModel = {};
-        this._rowCount = rowCount || 10;
-        this._colCount = colCount || 5;
+        this._rowCount = rowCount || DEFAULT_SHEET_ROW_COUNT;
+        this._colCount = colCount || DEFAULT_SHEET_COL_COUNT;
     }
 
     // value is untyped string or number.
@@ -60,27 +60,6 @@ class DataModel {
     toJSON() {
         return JSON.stringify(this._valueModel);
     }
-
-    // toSparseArray() {
-    //     const map = this._valueModel;
-    //     for (let i = 0; i < this._rowCount; i++) {
-    //         for (let j = 0; j < this._colCount; j++) {
-    //             const value = map.get(i)?.get(j);
-    //             if (value !== undefined) {
-    //                 if (sparseArray[i] === undefined) {
-    //                     sparseArray[i] = {};
-    //                 }
-    //                 sparseArray[i][j] = value;
-    //             }
-    //         }
-    //     }
-
-    //     return sparseArray;
-    // }
-
-    // flat() {
-    //     return this.toSparseArray().flat();
-    // }
 
     dispose() {
         this._valueModel = null;

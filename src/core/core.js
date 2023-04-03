@@ -1,73 +1,3 @@
-class Manager {
-    _historyPool;
-    _changesPool;
-
-    _userModel;
-    _dataModels;
-    _commandManager;
-
-    _spread;
-
-    constructor(spread) {
-        this._historyPool = new Map();
-        this._changesPool = new Map();
-        this._dataModel = {};
-        this._userModel = new UserModel();
-        this._commandManager = new CommandManager(spread);
-        this._spread = spread;
-    }
-
-    do(methodName, ...methodArgs) {
-        let self = this;
-        if (methodName) {
-            let method = self[methodName];
-            method && method.apply(self, methodArgs);
-        }
-    }
-
-    undo(userName) {
-        this._commandManager.undo(userName);
-    }
-
-    redo(userName) {
-        this._commandManager.redo(userName);
-    }
-
-    setValue(row, col, value) {
-        this._dataModel.setValue(row, col, value);
-    }
-
-    getValue(row, col) {
-        return this._dataModel.getValue(row, col);
-    }
-
-    startTransaction(userName) {
-        if (!userName) return;
-        let changesPool = this._changesPool;
-        if (!changesPool.has(userName)) {
-            changesPool.set(userName, []);
-        }
-    }
-
-    endTransaction(userName) {
-        if (!userName || !this._changesPool.has(userName)) return;
-        let changesPool = this._changesPool;
-        let historyPool = this._historyPool;
-        let changes = this._changesPool.get(userName);
-        if (changes && changes.length) {
-            if (!historyPool.has(userName)) {
-                historyPool.set(userName, []);
-            }
-            let histChanges = historyPool.get(userName);
-            histChanges.push({
-                timeStamp: new Date().getTime(),
-                changes: changes
-            });
-            changesPool.delete(userName);
-        }
-    }
-}
-
 class Command {
     _owner;
     _cmdDef;
@@ -114,12 +44,90 @@ class CommandManager {
 
     }
 
-    redo() {
+    redo(userName) {
 
     }
-
     dispose() {
         this._context = null;
     }
 
+}
+
+class ModelManager {
+
+    _historyPool;
+    _changesPool;
+
+    _sharedModel;
+    _dataModel;
+    _context;
+
+    constructor(context) {
+        this._context = context;
+        this._dataModel = {};
+        this._sharedModel = new SharedModel();
+        this._historyPool = new Map();
+        this._changesPool = new Map();
+    }
+
+    getSharedModel () {
+        return this._sharedModel;
+    }
+
+    getSheetModel (sheetName) {
+        return this._dataModel[sheetName];
+    }
+
+    do(methodName, ...methodArgs) {
+        let self = this;
+        if (methodName) {
+            let method = self[methodName];
+            method && method.apply(self, methodArgs);
+        }
+    }
+
+    addSheet (sheetName) {
+        this._dataModel[sheetName] = new DataModel(DEFAULT_SHEET_ROW_COUNT, DEFAULT_SHEET_COL_COUNT);
+    }
+
+    removeSheet(sheetName) {
+        this._dataModel[sheetName] = null;
+    }
+
+    setValue(sheetName, row, col, value) {
+        let index = this._sharedModel.getIndex(value);
+        this._dataModel[sheetName].setValue(row, col, index);
+    }
+
+    getValue(sheetName, row, col) {
+        let index = this._dataModel[sheetName].getValue(row, col);
+        return this._sharedModel.getValue(index);
+    }
+
+    startTransaction(userName) {
+        if (!userName) return;
+        let changesPool = this._changesPool;
+        if (!changesPool.has(userName)) {
+            changesPool.set(userName, []);
+        }
+    }
+
+    endTransaction(userName) {
+        let self = this;
+        if (!userName || !self._changesPool.has(userName)) return;
+        let changesPool = self._changesPool;
+        let historyPool = self._historyPool;
+        let changes = self._changesPool.get(userName);
+        if (changes && changes.length) {
+            if (!historyPool.has(userName)) {
+                historyPool.set(userName, []);
+            }
+            let histChanges = historyPool.get(userName);
+            histChanges.push({
+                timeStamp: new Date().getTime(),
+                changes: changes
+            });
+            changesPool.delete(userName);
+        }
+    }
 }

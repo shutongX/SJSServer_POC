@@ -41,7 +41,11 @@ class WorkbookRender extends Workbook {
     }
 
     getNewWorksheet(name) {
-        return new WorksheetRender(this, name);
+        let self = this;
+        let modelManager = self.modelManager();
+        modelManager.do("addSheet", name);
+        let dataModel = modelManager.getSheetModel(name);
+        return new WorksheetRender(self, name, dataModel);
     }
 
     /**
@@ -63,6 +67,8 @@ class WorksheetRender extends Worksheet {
 
     _activeRowIndex;
     _activeColIndex;
+    _viewModel;
+    _editing;
 
     /**
      * @param {Workbook} parent 
@@ -74,17 +80,36 @@ class WorksheetRender extends Worksheet {
         this._activeColIndex = 0;
     }
 
+    getValue(row, col) {
+        if (this._viewModel?.[row]?.[col] !== undefined) {
+            return this._viewModel[row][col];
+        }
+        return super.getValue(row, col);
+    }
+
+    getViewModel () {
+        if (!this._viewModel) {
+            this._viewModel = this._initViewModel();
+        }
+        return this._viewModel;
+    }
+
+    setViewModel(vm) {
+        this._viewModel = vm;
+        this.repaint();
+    }
+
     repaint() {
         let self = this;
+        let spread = self.getParent();
         /**
          * @type {HTMLElement}
          */
-        let host = self.getParent().getHost();
+        let host = spread.getHost();
         host.innerHTML = '';
-        /**
-         * @type {DataModel}
-         */
-        let vm = self._initViewModel();
+
+        let vm = self.getViewModel();
+
         let model = self._model;
         let rowCount = model.getRowCount(), colCount = model.getColCount();
         const table = document.createElement('table');
@@ -110,9 +135,18 @@ class WorksheetRender extends Worksheet {
             let colIndex = +target.getAttribute('col');
             self.setActiveCell(rowIndex, colIndex);
             if (key === 'Enter') {
-                self.setValue(+target.getAttribute('row'), +target.getAttribute('col'), target.innerText);
                 e.preventDefault();
-                self.setActiveCell(rowIndex + 1, colIndex, true);
+                if (!self._editing) {
+                    self._editing = true;
+                    spread.commandManager().execute({
+                        cmd: 'editCell',
+                        row: rowIndex,
+                        col: colIndex,
+                        newValue: target.innerText,
+                        sheetName: self.name()
+                    });
+                    self.setActiveCell(rowIndex + 1, colIndex, true);
+                }
             } else if (key === 'left') {
 
             }
@@ -121,11 +155,19 @@ class WorksheetRender extends Worksheet {
         const tds = document.querySelectorAll('td');
         tds.forEach(td => {
             td.addEventListener('blur', e => {
-                let target = e.target;
-                let rowIndex = +target.getAttribute('row');
-                let colIndex = +target.getAttribute('col');
-                self.setValue(rowIndex, colIndex, target.innerText);
-                target.blur();
+                if (!self._editing) {
+                    let target = e.target;
+                    let rowIndex = +target.getAttribute('row');
+                    let colIndex = +target.getAttribute('col');
+                    spread.commandManager().execute({
+                        cmd: 'editCell',
+                        row: rowIndex,
+                        col: colIndex,
+                        newValue: target.innerText,
+                        sheetName: self.name()
+                    });
+                    target.blur();
+                }
             });
         });
     }
@@ -156,20 +198,5 @@ class WorksheetRender extends Worksheet {
 
     _activateCell(row, col) {
         this._getCellDiv(row, col).focus();
-    }
-
-    _initViewModel() {
-        let self = this;
-        let model = JSON.parse(self._model.toJSON());
-        let sharedModel = self.getParent().getSharedModel();
-        for (const rowIndex in model) {
-            const row = model[rowIndex];
-            for (const colIndex in row) {
-                const sharedValuesIndex = row[colIndex];
-                row[colIndex] = sharedModel.getValue(sharedValuesIndex);
-            }
-        }
-        return model;
-
     }
 }
