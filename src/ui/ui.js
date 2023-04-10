@@ -1,4 +1,5 @@
-class WorkbookRender extends Workbook {
+import {Workbook, Worksheet} from '../api/api';
+export class WorkbookRender extends Workbook {
     _layoutSuspended;
 
     /**
@@ -63,7 +64,7 @@ class WorkbookRender extends Workbook {
     }
 }
 
-class WorksheetRender extends Worksheet {
+export class WorksheetRender extends Worksheet {
 
     _activeRowIndex;
     _activeColIndex;
@@ -152,24 +153,24 @@ class WorksheetRender extends Worksheet {
             }
         });
 
-        const tds = document.querySelectorAll('td');
-        tds.forEach(td => {
-            td.addEventListener('blur', e => {
-                if (!self._editing) {
-                    let target = e.target;
-                    let rowIndex = +target.getAttribute('row');
-                    let colIndex = +target.getAttribute('col');
-                    spread.commandManager().execute({
-                        cmd: 'editCell',
-                        row: rowIndex,
-                        col: colIndex,
-                        newValue: target.innerText,
-                        sheetName: self.name()
-                    });
-                    target.blur();
-                }
-            });
-        });
+        // const tds = document.querySelectorAll('td');
+        // tds.forEach(td => {
+        //     td.addEventListener('blur', e => {
+        //         if (!self._editing) {
+        //             let target = e.target;
+        //             let rowIndex = +target.getAttribute('row');
+        //             let colIndex = +target.getAttribute('col');
+        //             spread.commandManager().execute({
+        //                 cmd: 'editCell',
+        //                 row: rowIndex,
+        //                 col: colIndex,
+        //                 newValue: target.innerText,
+        //                 sheetName: self.name()
+        //             });
+        //             target.blur();
+        //         }
+        //     });
+        // });
     }
 
     getRowCount() {

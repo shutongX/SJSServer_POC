@@ -5,13 +5,15 @@
     "version": "1.0.0",
     "main": "pathToMain",
     "scripts": {
+        "build-all": "npm run build-regular && npm run build-worker && npm run build-server && npm run build-node",
         "build-regular": "rollup ",
         "build-worker": "rollup",
-        "build-server": "rollup",
-        "build-node": "rollup"
+        "build-server": "rollup --input src/indexes/server_backend.js --no-treeshake --output.file dist/server_backend.js --output.format cjs && rollup -c src/indexes/server_view.mjs",
+        "build-node": "rollup --input src/indexes/node.js --no-treeshake --output.file dist/node_mode.js --output.format cjs"
     },
     "type": "commonjs",
     "devDependencies": {
+        "@rollup/plugin-commonjs": "^24.0.1",
         "rollup": "^3.20.2"
     }
 }

@@ -1,3 +1,5 @@
+'use strict';
+
 const DEFAULT_WORKBOOK_OPTIONS = {
     sheetCount: 1,
 };
@@ -504,4 +506,19 @@ function initCommands(commandManager) {
     commandManager.register('editCell', Command_DEF_Edit_Cell);
 };
 
-export { Command, CommandManager, Command_DEF_Edit_Cell, DEFAULT_SHEET_COL_COUNT, DEFAULT_SHEET_ROW_COUNT, DEFAULT_WORKBOOK_OPTIONS, DataModel, ModelManager, SharedModel, USER_PRIORITY, USER_STATUS, Workbook, Worksheet, getWorksheet, initCommands, isNullOrUndefined };
+exports.Command = Command;
+exports.CommandManager = CommandManager;
+exports.Command_DEF_Edit_Cell = Command_DEF_Edit_Cell;
+exports.DEFAULT_SHEET_COL_COUNT = DEFAULT_SHEET_COL_COUNT;
+exports.DEFAULT_SHEET_ROW_COUNT = DEFAULT_SHEET_ROW_COUNT;
+exports.DEFAULT_WORKBOOK_OPTIONS = DEFAULT_WORKBOOK_OPTIONS;
+exports.DataModel = DataModel;
+exports.ModelManager = ModelManager;
+exports.SharedModel = SharedModel;
+exports.USER_PRIORITY = USER_PRIORITY;
+exports.USER_STATUS = USER_STATUS;
+exports.Workbook = Workbook;
+exports.Worksheet = Worksheet;
+exports.getWorksheet = getWorksheet;
+exports.initCommands = initCommands;
+exports.isNullOrUndefined = isNullOrUndefined;
