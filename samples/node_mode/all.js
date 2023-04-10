@@ -1,5 +1,7 @@
-require('../../src/api.js');
+import * as GC from '../../dist/bundle.js';
+// const GC = require('../../dist/bundle.js');
 
-console.log('Hello, SpreadJS!');
-
-// have no idea how to run it
+let spread = new GC.Workbook();
+let sheet = spread.getActiveSheet();
+sheet.setValue(0, 0, 'Hello world!');
+console.log(sheet.getValue(0, 0));

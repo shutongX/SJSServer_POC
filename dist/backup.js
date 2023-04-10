@@ -1,10 +1,231 @@
-import { DEFAULT_WORKBOOK_OPTIONS } from '../common/defaults';
-import { isNullOrUndefined } from '../common/util';
-// import { isNullOrUndefined } from '../common/enum';
-import { DataModel } from '../common/model';
-import { CommandManager, ModelManager } from '../core/core';
+const DEFAULT_WORKBOOK_OPTIONS = {
+    sheetCount: 1,
+};
 
-export class Workbook {
+const DEFAULT_SHEET_ROW_COUNT = 10;
+const DEFAULT_SHEET_COL_COUNT = 5;
+
+const USER_STATUS = {
+    inactivated: 0,
+    activated: 1,
+    '0': 'inactivated',
+    '1': 'activated'
+};
+
+const USER_PRIORITY = {
+    none: 0,
+    read: 1,
+    write: 3,
+    admin: 5
+};
+
+class SharedModel {
+    _sharedValues;
+
+    constructor() {
+        this._sharedValues = [];
+    }
+
+    getIndex(value) {
+        let index = this._sharedValues.indexOf(value);
+        if (index === -1) {
+            index = this._sharedValues.length;
+            this._sharedValues.push(value);
+        }
+        return index;
+    }
+
+    getValue(index) {
+        return this._sharedValues[index];
+    }
+
+    dispose() {
+        this._sharedValues = null;
+    }
+}
+
+class DataModel {
+
+    _valueModel;
+    _rowCount;
+    _colCount;
+    // _formulaModel;
+    // _styleModel;
+
+    constructor(rowCount, colCount) {
+        this._valueModel = {};
+        this._rowCount = rowCount || DEFAULT_SHEET_ROW_COUNT;
+        this._colCount = colCount || DEFAULT_SHEET_COL_COUNT;
+    }
+
+    // value is untyped string or number.
+    setValue(row, col, value) {
+        if (!this._valueModel[row]) {
+            this._valueModel[row] = {};
+        }
+        this._valueModel[row][col] = value;
+    }
+
+    getValue(row, col) {
+        return this._valueModel[row]?.[col];
+    }
+
+    getRowCount() {
+        return this._rowCount;
+    }
+
+    getColCount() {
+        return this._colCount;
+    }
+
+    toJSON() {
+        return JSON.stringify(this._valueModel);
+    }
+
+    dispose() {
+        this._valueModel = null;
+    }
+}
+
+function isNullOrUndefined(value) {
+    return value === void 0 || value === null;
+}
+
+class Command {
+    _owner;
+    _cmdDef;
+    _name;
+
+    constructor(owner, cmdDef, name) {
+        this._owner = owner;
+        this._cmdDef = cmdDef;
+        this._name = name;
+    }
+
+    execute(context, options, isUndo) {
+        let self = this, ret;
+        let fn = self._cmdDef.execute || self._cmdDef;
+        try {
+            ret = fn(context, options, isUndo);
+        } catch (e) {
+        }
+        return ret;
+    }
+}
+
+class CommandManager {
+    _context;
+
+    constructor(context) {
+        this._context = context;
+    }
+
+    register(name, command) {
+        let self = this;
+        let cmd = new Command(self, command, name);
+        self[name] = cmd;
+    }
+
+    execute(commandOptions) {
+        let cmd = this[commandOptions.cmd];
+        if (cmd) {
+            return cmd.execute(this._context, commandOptions, false /* isUndo */);
+        }
+    }
+
+    undo(userName) {
+
+    }
+
+    redo(userName) {
+
+    }
+    dispose() {
+        this._context = null;
+    }
+
+}
+
+class ModelManager {
+
+    _historyPool;
+    _changesPool;
+
+    _sharedModel;
+    _dataModel;
+    _context;
+
+    constructor(context) {
+        this._context = context;
+        this._dataModel = {};
+        this._sharedModel = new SharedModel();
+        this._historyPool = new Map();
+        this._changesPool = new Map();
+    }
+
+    getSharedModel() {
+        return this._sharedModel;
+    }
+
+    getSheetModel(sheetName) {
+        return this._dataModel[sheetName];
+    }
+
+    do(methodName, ...methodArgs) {
+        let self = this;
+        if (methodName) {
+            let method = self[methodName];
+            method && method.apply(self, methodArgs);
+        }
+    }
+
+    addSheet(sheetName) {
+        this._dataModel[sheetName] = new DataModel(DEFAULT_SHEET_ROW_COUNT, DEFAULT_SHEET_COL_COUNT);
+    }
+
+    removeSheet(sheetName) {
+        this._dataModel[sheetName] = null;
+    }
+
+    setValue(sheetName, row, col, value) {
+        let index = this._sharedModel.getIndex(value);
+        this._dataModel[sheetName].setValue(row, col, index);
+    }
+
+    getValue(sheetName, row, col) {
+        let index = this._dataModel[sheetName].getValue(row, col);
+        return this._sharedModel.getValue(index);
+    }
+
+    startTransaction(userName) {
+        if (!userName) return;
+        let changesPool = this._changesPool;
+        if (!changesPool.has(userName)) {
+            changesPool.set(userName, []);
+        }
+    }
+
+    endTransaction(userName) {
+        let self = this;
+        if (!userName || !self._changesPool.has(userName)) return;
+        let changesPool = self._changesPool;
+        let historyPool = self._historyPool;
+        let changes = self._changesPool.get(userName);
+        if (changes && changes.length) {
+            if (!historyPool.has(userName)) {
+                historyPool.set(userName, []);
+            }
+            let histChanges = historyPool.get(userName);
+            histChanges.push({
+                timeStamp: new Date().getTime(),
+                changes: changes
+            });
+            changesPool.delete(userName);
+        }
+    }
+}
+
+class Workbook {
     /**
     * @type {Worksheet[]}
     */
@@ -145,7 +366,7 @@ export class Workbook {
     // //#endregion
 }
 
-export class Worksheet {
+class Worksheet {
 
     /**
      * @type {string}
@@ -238,7 +459,7 @@ export class Worksheet {
  * @param {*} options 
  * @returns 
  */
-export function getWorksheet(context, options) {
+function getWorksheet(context, options) {
     if (context.sheets) {
         let sheet = context.getSheetByName(options.sheetName);
         if (sheet) {
@@ -249,7 +470,7 @@ export function getWorksheet(context, options) {
 }
 
 
-export const Command_DEF_Edit_Cell = {
+const Command_DEF_Edit_Cell = {
     /**
      * 
      * @param {WorkbookRender} context 
@@ -273,12 +494,14 @@ export const Command_DEF_Edit_Cell = {
             }
         }
     }
-}
+};
 
 /**
  * 
  * @param {CommandManager} commandManager 
  */
-export function initCommands(commandManager) {
+function initCommands(commandManager) {
     commandManager.register('editCell', Command_DEF_Edit_Cell);
 };
+
+export { Command, CommandManager, Command_DEF_Edit_Cell, DEFAULT_SHEET_COL_COUNT, DEFAULT_SHEET_ROW_COUNT, DEFAULT_WORKBOOK_OPTIONS, DataModel, ModelManager, SharedModel, USER_PRIORITY, USER_STATUS, Workbook, Worksheet, getWorksheet, initCommands, isNullOrUndefined };

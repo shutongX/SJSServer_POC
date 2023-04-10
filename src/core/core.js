@@ -1,4 +1,7 @@
-class Command {
+import { DataModel, SharedModel } from '../common/model';
+import { DEFAULT_SHEET_ROW_COUNT, DEFAULT_SHEET_COL_COUNT } from '../common/defaults';
+
+export class Command {
     _owner;
     _cmdDef;
     _name;
@@ -20,7 +23,7 @@ class Command {
     }
 }
 
-class CommandManager {
+export class CommandManager {
     _context;
 
     constructor(context) {
@@ -53,7 +56,7 @@ class CommandManager {
 
 }
 
-class ModelManager {
+export class ModelManager {
 
     _historyPool;
     _changesPool;
@@ -70,11 +73,11 @@ class ModelManager {
         this._changesPool = new Map();
     }
 
-    getSharedModel () {
+    getSharedModel() {
         return this._sharedModel;
     }
 
-    getSheetModel (sheetName) {
+    getSheetModel(sheetName) {
         return this._dataModel[sheetName];
     }
 
@@ -86,7 +89,7 @@ class ModelManager {
         }
     }
 
-    addSheet (sheetName) {
+    addSheet(sheetName) {
         this._dataModel[sheetName] = new DataModel(DEFAULT_SHEET_ROW_COUNT, DEFAULT_SHEET_COL_COUNT);
     }
 

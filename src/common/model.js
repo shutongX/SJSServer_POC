@@ -1,4 +1,6 @@
-class SharedModel {
+import {DEFAULT_SHEET_ROW_COUNT, DEFAULT_SHEET_COL_COUNT} from './defaults'
+
+export class SharedModel {
     _sharedValues;
 
     constructor() {
@@ -23,7 +25,7 @@ class SharedModel {
     }
 }
 
-class DataModel {
+export class DataModel {
 
     _valueModel;
     _rowCount;
