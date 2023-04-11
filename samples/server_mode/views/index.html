@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>
+        SpreadJS Server
+    </title>
+    <link rel="stylesheet" href="style.css">
+    <script src="../../../dist/server_view.js"></script>
+    <script src="../node_modules/socket.io-client/dist/socket.io.js"></script>
+    <script>
+        url = 'http://127.0.0.1:3000/';
+        let sock = io.connect(url, {
+            withCredentials: false  // 允许包含凭据的跨域请求
+        })    // 这里是 ws 协议，不是 http 协议
+        sock.on('connect', () => {
+            console.log('connected')
+        })
+        //建立链接事件
+        sock.on('update', data => {
+            refresh();
+        })
+        //监听服务端请求->客户端
+        sock.on('disconnect', () => {
+            console.log('closed')
+        })
+    </script>
+    <script>
+        GC.CommandManager.prototype.execute = function (commandOptions) {
+            const options = {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(commandOptions)
+            };
+            fetch(url + 'execute', options);
+        }
+
+        function refresh() {
+            fetch(url + 'getViewModel').then(response => response.json())
+                .then(data => {
+                    sheet.setViewModel(data);
+                    sheet._editing = false;
+                })
+        }
+
+
+    </script>
+</head>
+
+<body>
+    <div id="ss"></div>
+    <script>
+        spread = new GC.WorkbookRender('ss')
+        sheet = spread.getActiveSheet();
+    </script>
+</body>
+
+</html>
