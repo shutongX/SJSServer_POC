@@ -144,6 +144,7 @@ export class WorksheetRender extends Worksheet {
                         row: rowIndex,
                         col: colIndex,
                         newValue: target.innerText,
+                        oldValue: self.getValue(rowIndex, colIndex),
                         sheetName: self.name()
                     });
                     self.setActiveCell(rowIndex + 1, colIndex, true);
@@ -188,7 +189,7 @@ export class WorksheetRender extends Worksheet {
 
     setActiveCell(row, col, focus) {
         let self = this;
-        if (row <= self.getRowCount() && col <= self.getColCount() && (row !== self._activeRowIndex || col !== self._activeColIndex)) {
+        if (row < self.getRowCount() && col < self.getColCount() && (row !== self._activeRowIndex || col !== self._activeColIndex)) {
             self._activeRowIndex = row;
             self._activeColIndex = col;
             if (focus) {

@@ -31,3 +31,74 @@ td:focus {
 td:hover {
     background-color: lightblue;
 }
+
+#panel {
+    max-height: 500px;
+    padding: 10px;
+    background-color: #f5f5f5;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    overflow-y: auto;
+}
+
+#panel p {
+    background-color: #fff;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    margin: 5px auto;
+}
+
+/* 外部容器 */
+#userInfo {
+    height: 50px;
+    padding: 10px;
+    margin: 5px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+}
+
+#userInfo p {
+    font-size: 16px;
+    margin-right: 10px;
+    display: inline-block;
+}
+
+/* 注册框 */
+#userName {
+    width: 200px;
+    outline: none;
+    border: 1px solid #1e90ff;
+    border-radius: 5px;
+    height: 40px;
+    box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.1);
+    font-size: 16px;
+    margin-right: 20px;
+}
+
+#userInfo button {
+    border-radius: 5px;
+    border: none;
+    box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.1);
+    font-size: 16px;
+    cursor: pointer;
+    width: 120px;
+    padding: 10px;
+    height: 40px;
+}
+
+/* 注册按钮 */
+#register {
+    background-color: #1e90ff;
+    color: #fff;
+}
+
+#undo {
+    background-color: #708ca8;
+    color: #fff;
+}
+
+/* 注册按钮鼠标悬停样式 */
+#register:hover {
+    background-color: #187bcd;
+}

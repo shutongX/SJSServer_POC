@@ -6,20 +6,29 @@
     <title>
         SpreadJS Server
     </title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="./style.css">
     <script src="../../../dist/server_view.js"></script>
     <script src="../node_modules/socket.io-client/dist/socket.io.js"></script>
     <script>
-        url = 'http://127.0.0.1:3000/';
+        url = 'http://10.32.1.21:3000/';
         let sock = io.connect(url, {
-            withCredentials: false  // 允许包含凭据的跨域请求
+            withCredentials: false  // 不允许包含凭据的跨域请求
         })    // 这里是 ws 协议，不是 http 协议
         sock.on('connect', () => {
             console.log('connected')
         })
         //建立链接事件
-        sock.on('update', data => {
-            refresh();
+        sock.on('change', data => {
+            const { changeList, viewModel } = data;
+
+            if (changeList) {
+                renderChangeList(changeList);
+            }
+
+            if (viewModel && sheet) {
+                sheet.setViewModel(viewModel);
+                sheet._editing = false;
+            }
         })
         //监听服务端请求->客户端
         sock.on('disconnect', () => {
@@ -46,15 +55,78 @@
                 })
         }
 
+        function register() {
+            let userName = document.getElementById('userName').value.trim();
+            if (userName) {
+                const options = {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        userName
+                    })
+                };
+                fetch(url + 'register', options);
+                renderUserName(userName);
+            }
+        }
+        function undo() {
+            const options = {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            };
+            fetch(url + 'undo', options);
+        }
+        function updateChangeList() {
+            fetch(url + 'getChangeList').then(response => response.json())
+                .then(data => {
+                    renderChangeList(data);
+                })
+        }
+
+        function renderChangeList(changeList) {
+            let HTML = ''
+            changeList.forEach(change =>
+                HTML += `<div class="changeInfo">
+                    <p> ${change.userName} (IP: ${change.userIP}) 在 ( ${change.commandOptions.row} , ${change.commandOptions.col} ) 设置了值 ${change.commandOptions.newValue} </p>
+                </div>`);
+            let panel = document.getElementById('panel');
+            panel.innerHTML = HTML;
+            panel.scrollTop = panel.scrollHeight;
+        }
+
+        function updateUserName() {
+            fetch(url + 'getUserName').then(response => response.json())
+                .then(name => {
+                    renderUserName(name);
+                })
+        }
+
+        function renderUserName(name) {
+            document.getElementById('currentUserName').innerText = "你好，" + name;
+        }
 
     </script>
 </head>
 
 <body>
     <div id="ss"></div>
+    <div id="userInfo">
+        <p id="currentUserName"></p>
+        <input type="text" id="userName" placeholder="在这里输入你的名字">
+        <button id="register" onclick="register()">SET NAME</button>
+        <button id="undo" onclick="undo()">UNDO</button>
+    </div>
+    <div id="panel"></div>
     <script>
         spread = new GC.WorkbookRender('ss')
         sheet = spread.getActiveSheet();
+        refresh();
+        updateChangeList();
+        updateUserName();
     </script>
 </body>
 

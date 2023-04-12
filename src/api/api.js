@@ -266,9 +266,10 @@ export const Command_DEF_Edit_Cell = {
             if (!(isNaN(parseFloat(newValue, 10)))) {
                 newValue = parseFloat(newValue, 10);
             }
-            if (sheet.getValue(row, col) !== newValue) {
+            let oldValue = sheet.getValue(row, col);
+            if (oldValue !== newValue) {
                 let modelManager = context.modelManager();
-                modelManager.do('setValue', sheetName, row, col, newValue);
+                modelManager.do('setValue', sheetName, row, col, newValue, oldValue);
                 sheet.repaint?.();
             }
         }

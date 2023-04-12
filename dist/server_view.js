@@ -490,9 +490,10 @@ var GC = (function (exports) {
                 if (!(isNaN(parseFloat(newValue, 10)))) {
                     newValue = parseFloat(newValue, 10);
                 }
-                if (sheet.getValue(row, col) !== newValue) {
+                let oldValue = sheet.getValue(row, col);
+                if (oldValue !== newValue) {
                     let modelManager = context.modelManager();
-                    modelManager.do('setValue', sheetName, row, col, newValue);
+                    modelManager.do('setValue', sheetName, row, col, newValue, oldValue);
                     sheet.repaint?.();
                 }
             }
@@ -652,6 +653,7 @@ var GC = (function (exports) {
                             row: rowIndex,
                             col: colIndex,
                             newValue: target.innerText,
+                            oldValue: self.getValue(rowIndex, colIndex),
                             sheetName: self.name()
                         });
                         self.setActiveCell(rowIndex + 1, colIndex, true);
@@ -696,7 +698,7 @@ var GC = (function (exports) {
 
         setActiveCell(row, col, focus) {
             let self = this;
-            if (row <= self.getRowCount() && col <= self.getColCount() && (row !== self._activeRowIndex || col !== self._activeColIndex)) {
+            if (row < self.getRowCount() && col < self.getColCount() && (row !== self._activeRowIndex || col !== self._activeColIndex)) {
                 self._activeRowIndex = row;
                 self._activeColIndex = col;
                 if (focus) {
